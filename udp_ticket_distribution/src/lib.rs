@@ -108,10 +108,12 @@ mod tests{
         use super::distr::FlightDB;
         use std::sync::Arc;
         use futures::lock::Mutex;
+
+        const CLIENTS_NUM: u8 = 100;
         //serverside
         let distr = Distributor::new_with_address("127.0.0.1:8083".to_string()).await?;
 
-        distr.gen_fake_flight(1).await; //1*6 seats for 10 passengers
+        distr.gen_fake_flight(CLIENTS_NUM/6).await; //100/6=16 rows  4 seats
 
         let arc = distr.db_storage();
         let lock = arc.read().unwrap();
@@ -125,7 +127,7 @@ mod tests{
         let distr_addr = distr.get_address();
 
         let mut psngers = Vec::new();
-        for _ in 0..10{
+        for _ in 0..CLIENTS_NUM{
             let mut p: Passenger = Passenger::new().await?;
             p.try_connect(&distr_addr).await.unwrap();
             psngers.push(Arc::new(Mutex::new(p)));
@@ -148,7 +150,7 @@ mod tests{
 
         let mut tasks = Vec::new();
 
-        for i in 0..10{
+        for i in 0..CLIENTS_NUM.into(){
             let client = psngers[i].clone();
             let data_num = psngers_flightdb.info.num.clone();
             tasks.push(tokio::spawn(async move {
